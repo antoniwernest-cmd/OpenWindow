@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Drag & Drop Activity</title>
+
+  <!-- Interact.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
+
+  <style>
+    body {
+      font-family: "Century Gothic", sans-serif;
+      background: #f5f7fb;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h1 {
+      margin-top: 0;
+    }
+
+    .board {
+      display: flex;
+      gap: 40px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+
+    .column {
+      flex: 1 1 260px;
+      min-width: 260px;
+    }
+
+    .column h2 {
+      margin-bottom: 10px;
+    }
+
+    .card {
+      position: absolute;
+      width: 180px;
+      padding: 10px;
+      border-radius: 8px;
+      border: 2px solid #333;
+      background: white;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+      cursor: move;
+      user-select: none;
+      text-align: center;
+    }
+
+    .card img {
+      max-width: 100%;
+      height: auto;
+      display: block;
+      margin: 0 auto 5px;
+    }
+
+    .dropzone {
+      position: relative;
+      width: 220px;
+      height: 120px;
+      border: 3px dashed #999;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+      background: #ffffffaa;
+      transition: background 0.2s, border-color 0.2s, transform 0.1s;
+    }
+
+    .dropzone-label {
+      pointer-events: none;
+      font-weight: bold;
+    }
+
+    .drop-target {
+      border-color: #0077ff;
+      background: #e3f1ff;
+      transform: scale(1.03);
+    }
+
+    .drop-correct {
+      border-color: #1e8c3a;
+      background: #dff6e2;
+    }
+
+    .drop-wrong {
+      border-color: #c41c1c;
+      background: #fde2e2;
+    }
+
+    .status {
+      margin-top: 15px;
+      font-weight: bold;
+      min-height: 1.2em;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Drag & Drop Web Activity</h1>
+<p>Drag the cards into the matching boxes. Cards can contain <b>text</b> or <b>pictures</b>.</p>
+
+<div class="board">
+  <!-- LEFT: Drop zones -->
+  <div class="column">
+    <h2>Drop Zones</h2>
+
+    <div class="dropzone" data-accept="card1">
+      <span class="dropzone-label">Winter Sports</span>
+    </div>
+
+    <div class="dropzone" data-accept="card2">
+      <span class="dropzone-label">Warm Drinks</span>
+    </div>
+
+    <div class="dropzone" data-accept="card3">
+      <span class="dropzone-label">Christmas Decorations</span>
+    </div>
+  </div>
+
+  <!-- RIGHT: Draggable cards -->
+  <div class="column">
+    <h2>Draggable Items</h2>
+
+    <!-- Text-only card -->
+    <div class="card draggable"
+         id="card1"
+         style="top: 180px; left: 420px;">
+      ⛷️ Ski-doo / Snowmobile
+    </div>
+
+    <!-- Text-only card -->
+    <div class="card draggable"
+         id="card2"
+         style="top: 320px; left: 430px;">
+      ☕ Hot chocolate
+    </div>
+
+    <!-- Card with a picture inside -->
+    <div class="card draggable"
+         id="card3"
+         style="top: 460px; left: 440px;">
+      <img src="https://picsum.photos/seed/christmas/120/80" alt="Tree" />
+      🎄 Christmas tree
+    </div>
+  </div>
+</div>
+
+<div class="status" id="status"></div>
+
+<script>
+  interact('.draggable').draggable({
+    inertia: true,
+
+    listeners: {
+      move (event) {
+        const target = event.target;
+
+        const x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
+        const y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
+
+        target.style.transform = `translate(${x}px, ${y}px)`;
+        target.setAttribute('data-x', x);
+        target.setAttribute('data-y', y);
+      }
+    }
+  });
+
+  interact('.dropzone').dropzone({
+    accept: '.draggable',
+    overlap: 0.2,
+
+    ondragenter (event) {
+      event.target.classList.add('drop-target');
+    },
+
+    ondragleave (event) {
+      event.target.classList.remove('drop-target');
+    },
+
+    ondrop (event) {
+      const dropzone = event.target;
+      const card = event.relatedTarget;
+
+      dropzone.classList.remove('drop-target', 'drop-correct', 'drop-wrong');
+
+      const expectedId = dropzone.getAttribute('data-accept');
+      const actualId = card.id;
+
+      const status = document.getElementById('status');
+
+      if (expectedId === actualId) {
+        dropzone.classList.add('drop-correct');
+        status.textContent = "✅ Nice! You matched it correctly.";
+      } else {
+        dropzone.classList.add('drop-wrong');
+        status.textContent = "❌ Not quite. Try a different box.";
+      }
+
+      const dzRect = dropzone.getBoundingClientRect();
+      const cardRect = card.getBoundingClientRect();
+
+      const offsetX = dzRect.left + dzRect.width / 2 - (cardRect.left + cardRect.width / 2);
+      const offsetY = dzRect.top + dzRect.height / 2 - (cardRect.top + cardRect.height / 2);
+
+      const currentX = parseFloat(card.getAttribute('data-x')) || 0;
+      const currentY = parseFloat(card.getAttribute('data-y')) || 0;
+
+      const newX = currentX + offsetX;
+      const newY = currentY + offsetY;
+
+      card.style.transform = `translate(${newX}px, ${newY}px)`;
+      card.setAttribute('data-x', newX);
+      card.setAttribute('data-y', newY);
+    }
+  });
+</script>
+
+</body>
+</html>
